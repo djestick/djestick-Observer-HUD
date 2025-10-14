@@ -25,6 +25,18 @@ const toGrenadeArray = (
 
 type RadarWeapon = WeaponRaw & { id?: string };
 
+type BasicPosition = number[];
+
+const hasCoordinates = (candidate: unknown): candidate is BasicPosition => {
+    if (!Array.isArray(candidate)) return false;
+    if (candidate.length < 2) return false;
+    const [x, y] = candidate;
+    return typeof x === "number" && !Number.isNaN(x) && typeof y === "number" && !Number.isNaN(y);
+};
+
+const safeHeight = (position: BasicPosition): number =>
+  typeof position[2] === "number" && !Number.isNaN(position[2]) ? position[2] : 0;
+
 const calculateDirection = (player: Player) => {
     if (directions[player.steamid] && !player.state.health) return directions[player.steamid];
 
@@ -120,22 +132,40 @@ export const extendGrenade = ({grenade, mapName, side }: { side: Side, grenade: 
     }
     const map = maps[mapName];
     if (extGrenade.type === "inferno") {
-        const mapFlame = (flame: CSGOInfernoGrenade["flames"][number]) => {
+        const mapFlame = (flame: CSGOInfernoGrenade["flames"][number] | undefined, index: number) => {
+            if (!flame || !hasCoordinates(flame.position)) {
+                return null;
+            }
+            const normalizedPosition = flame.position;
+            const height = safeHeight(normalizedPosition);
+            const baseId = flame.id
+                ? `${flame.id}_${extGrenade.id}`
+                : `${extGrenade.id}_flame_${index}`;
             if ("config" in map) {
+                const position = parsePosition(normalizedPosition, map.config);
+                if (!position) return null;
                 return ({
-                    position: parsePosition(flame.position, map.config),
-                    id: `${flame.id}_${extGrenade.id}`,
+                    position,
+                    id: baseId,
                     visible: true
                 });
             }
-            return map.configs.map(config => ({
-                id: `${flame.id}_${extGrenade.id}_${config.id}`,
-                visible: config.isVisible(flame.position[2]),
-                position: parsePosition(flame.position, config.config)
-            }));
+            return map.configs.map(config => {
+                const position = parsePosition(normalizedPosition, config.config);
+                if (!position) return null;
+                return ({
+                    id: `${baseId}_${config.id}`,
+                    visible: config.isVisible(height),
+                    position
+                });
+            }).filter((entry): entry is { id: string; visible: boolean; position: number[] } => entry !== null);
         }
-        const flameEntries = (extGrenade.flames as CSGOInfernoGrenade["flames"] | undefined) ?? [];
-        const flames = flameEntries.map(mapFlame).flat();
+        const flameEntries = toArray<CSGOInfernoGrenade["flames"][number]>(extGrenade.flames as any);
+        const flames = flameEntries.flatMap((flame, index) => {
+            const mapped = mapFlame(flame, index);
+            if (!mapped) return [];
+            return Array.isArray(mapped) ? mapped : [mapped];
+        });
         const flameObjects: RadarGrenadeObject[] = flames.map(flame => ({
             ...flame,
             side: extGrenade.side,

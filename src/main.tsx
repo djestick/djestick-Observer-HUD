@@ -1,16 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import process from "process";
 import App from "./App.tsx";
-// import * as process from "process";
-// globalThis.process = process;
-// declare global {
-//   interface Window {
-//     ipcApi: {
-//       send: (channel: string, ...arg: any) => void;
-//       receive: (channel: string, func: (...arg: any) => void) => void;
-//     };
-//   }
-// }
+
+if (!(globalThis as any).process) {
+  (globalThis as any).process = process;
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

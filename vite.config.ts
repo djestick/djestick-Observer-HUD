@@ -60,6 +60,13 @@ export default defineConfig(async ({ command, mode }) => {
   await updateDefinitonFile({
     filePath: path.join(".", "public", "keybinds.json"),
   });
+  const nodeEnvLiteral = JSON.stringify(
+    mode === "production" ? "production" : "development"
+  );
+  const globalDefines = {
+    global: "globalThis",
+    "process.env.NODE_ENV": nodeEnvLiteral,
+  };
   return {
     plugins: [react(), svgr(), settingsAndKeybindsPlugin()],
     build: {
@@ -68,8 +75,11 @@ export default defineConfig(async ({ command, mode }) => {
     resolve: {
       alias: {
         "readable-stream": "vite-compatible-readable-stream",
+        util: "util/",
+        process: "process/browser",
       },
     },
+    define: globalDefines,
     base: "./",
     server: {
       open: "http://localhost:3500",
@@ -77,11 +87,10 @@ export default defineConfig(async ({ command, mode }) => {
       port: 3500,
     },
     optimizeDeps: {
+      include: ["process", "util"],
       esbuildOptions: {
-        // Node.js global to browser globalThis
-        define: {
-          global: "globalThis",
-        },
+        // Node.js globals polyfills for browser
+        define: globalDefines,
       },
     },
   };
