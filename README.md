@@ -2,16 +2,15 @@
 # 🎯 Custom Free Observer HUD for CS2
 ---
 <p align="center">
-  <img src="https://i.ibb.co/mCC1x2cR/image-3.png" width="32%" />
-  <img src="https://i.ibb.co/N2p4vWDG/image-4.png" width="32%" />
-  <img src="https://i.ibb.co/Mxk6JRvJ/image-5.png" width="32%" />
-</p>
-<p align="center">
   <a href="https://www.youtube.com/watch?v=sXaf4tycGrY">
     <img src="https://i.ibb.co/My1Yfp8k/Slide-21316-9-2.png" alt="Watch on YouTube" width="800">
   </a>
 </p>
-
+<p align="center">
+  <img src="https://i.ibb.co/mCC1x2cR/image-3.png" width="32%" />
+  <img src="https://i.ibb.co/N2p4vWDG/image-4.png" width="32%" />
+  <img src="https://i.ibb.co/Mxk6JRvJ/image-5.png" width="32%" />
+</p>
 ## 🧩 Overview
 
 **Custom FREE Observer HUD** for **Counter-Strike 2**,  
