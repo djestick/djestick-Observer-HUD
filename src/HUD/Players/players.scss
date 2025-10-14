@@ -1,0 +1,569 @@
+.teambox {
+  position: fixed;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.75s;
+
+  &.CT {
+    transform: perspective(500px) rotateY(4deg);
+    transform-style: preserve-3d;
+
+    .player_data {
+      background: radial-gradient(
+          circle at 10% 100%,
+          var(--color-new-ct) 0%,
+          rgba(0, 0, 0, 0) 100%
+        ),
+        rgba(0, 0, 0, 0.85);
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    .player.dead .player_data {
+      background: rgba(0, 0, 0, 0.85);
+      background-image: none;
+    }
+
+    .player .hp_bar,
+    .obs_slot {
+      background-color: var(--color-new-ct);
+    }
+    .player-stats svg {
+      fill: #e7e7e7;
+    }
+  }
+
+  &.T {
+    transform: perspective(500px) rotateY(-4deg);
+    transform-style: preserve-3d;
+
+    .player_data {
+      background: radial-gradient(
+          circle at 90% 100%,
+          var(--color-new-t) 0%,
+          rgba(0, 0, 0, 0) 100%
+        ),
+        rgba(0, 0, 0, 0.85);
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    .player.dead .player_data {
+      background: rgba(0, 0, 0, 0.85);
+      background-image: none;
+    }
+
+    .player .hp_bar,
+    .obs_slot {
+      background-color: var(--color-new-t);
+    }
+    .player-stats svg {
+      fill: #e7e7e7;
+    }
+    .avatar {
+      margin-right: 6px; // или сколько тебе нужно, подбери визуально
+    }
+  }
+
+  &.hide {
+    opacity: 0;
+  }
+  &.left {
+    left: 20px;
+    .player {
+      .player_data {
+        .obs_slot {
+          left: -10px;
+        }
+        .top_row {
+          .defuser_bomb {
+            left: 4px;
+          }
+          .roundkills {
+            right: 4px;
+          }
+        }
+        .bottom_row {
+          .weapon_utility {
+            justify-content: end;
+          }
+          .health_armor {
+            padding-left: 8px;
+          }
+        }
+      }
+    }
+  }
+  .weapon.zeus {
+    height: 30px;
+    position: absolute;
+    &.left {
+      left: 170px;
+    }
+    &.right {
+      right: 170px;
+    }
+  }
+  &.right {
+    align-items: end;
+    right: 20px;
+    .player {
+      flex-direction: row-reverse;
+      .player_data {
+        .obs_slot {
+          right: -10px;
+        }
+        .top_row {
+          flex-direction: row-reverse;
+          .defuser_bomb {
+            right: 4px;
+          }
+          .roundkills {
+            left: 4px;
+          }
+        }
+        .bottom_row {
+          flex-direction: row-reverse;
+          .hp_bar,
+          .hp_redbar {
+            align-self: flex-end;
+          }
+          .health_armor {
+            flex-direction: row-reverse;
+            padding-right: 8px;
+          }
+          .weapon_utility {
+            flex-direction: row-reverse;
+            .roundkills-container {
+              left: 115px;
+            }
+          }
+          .secondary_weapon {
+            padding-left: 10px;
+          }
+
+          .weapon {
+            transform: scaleX(-1);
+          }
+        }
+      }
+    }
+  }
+  .player {
+    width: 280px;
+    height: 75px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 0px;
+    border: 2px solid transparent;
+    transition: width 0.5s;
+    &.active {
+      border-color: white;
+    }
+    .player_data {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      height: 100%;
+      border-radius: 0px;
+
+      .obs_slot {
+        position: absolute;
+        display: flex;
+        width: 20px;
+        height: 20px;
+        border-radius: 0px;
+        border: #fff 1px solid;
+        color: white;
+        font-weight: 700;
+        bottom: 83%;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .top_row {
+        display: flex;
+        width: 100%;
+        height: 65%;
+        gap: 04px;
+        padding: 0 6px;
+
+        .avatar {
+          width: 65px;
+          flex: 0 0 65px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          position: relative;
+
+          img {
+            width: 65px;
+            height: 65px;
+          }
+        }
+
+        .player-stats {
+          width: 60px;
+          flex: 0 0 60px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+
+          .statistics {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+
+            .player-kills,
+            .player-deaths {
+              display: flex;
+              align-items: center;
+              gap: 04px;
+
+              svg {
+                width: 14px;
+                height: 14px;
+              }
+
+              .stat-value {
+                color: white;
+                font-weight: 600;
+                font-size: 14px;
+              }
+            }
+          }
+        }
+
+        .username_money {
+          flex: 1;
+          max-width: 160px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 2px;
+          overflow: hidden;
+
+          .username {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 1000;
+            font-size: 16px;
+            color: white;
+            text-align: center;
+          }
+
+          .money {
+            color: #e7e7e7;
+            font-weight: 500;
+            font-size: 13px;
+            text-align: center;
+          }
+        }
+
+        .defuser_bomb {
+          position: absolute;
+          z-index: 1;
+          &.left {
+            left: 60px;
+          }
+          &.right {
+            right: 60px;
+          }
+
+          svg {
+            width: 20px;
+            height: 20px;
+          }
+
+          .bomb_indicator {
+            fill: #ffffff;
+          }
+
+          .defuse_indicator {
+            fill: #fff;
+          }
+        }
+      }
+
+      .bottom_row {
+        display: flex;
+        position: relative;
+        width: 100%;
+        height: 35%;
+        border-bottom-right-radius: 0px;
+        border-bottom-left-radius: 0px;
+        overflow: hidden;
+        .roundkills {
+          width: 15px;
+          height: 20px;
+          background-color: rgba(255, 255, 255, 0.1);
+          border: 1px solid #fff;
+          border-radius: 3px;
+          font-weight: 700;
+          font-size: 13px;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .round_damage {
+          width: 100%;
+          height: 100%;
+          display: none;
+          color: #b2b2b2;
+          font-size: 14px;
+          font-weight: 700;
+          justify-content: center;
+        }
+        .hp_bar {
+          position: absolute;
+          height: 100%;
+          transition: width 0.75s;
+        }
+        .hp_redbar {
+          position: absolute;
+          height: 100%;
+          background: linear-gradient(to right, #540c28, #ba1b58);
+          transition: width 2s 0.75s;
+        }
+        .health_armor {
+          width: 25%;
+          height: 100%;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          .health {
+            display: flex;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+            justify-content: center;
+            align-items: center;
+          }
+          .armor_indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            svg {
+              width: 20px;
+              height: 20px;
+              fill: white;
+            }
+          }
+        }
+        .weapon_utility {
+          z-index: 1;
+          width: 75%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: start;
+          .grenades {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            svg.grenade {
+              width: 20px;
+              height: 20px;
+            }
+          }
+          svg.weapon {
+            max-height: 30px;
+            width: auto;
+            margin-left: 5px;
+            margin-right: 5px;
+            max-width: 100px;
+            height: 30px;
+          }
+          .secondary_weapon {
+            display: flex;
+            align-items: center;
+            svg {
+              max-height: 30px;
+              height: 30px;
+            }
+          }
+        }
+      }
+    }
+    &.dead {
+      opacity: 1;
+      width: 240px;
+      .player_data {
+        .top_row {
+          height: 100%;
+          .username_money {
+            .username,
+            .money {
+              color: #b2b2b2;
+            }
+          }
+          .statistics {
+            margin-top: 0px;
+            .roundkills {
+              background-color: #b2b2b2;
+            }
+          }
+        }
+
+        .bottom_row {
+          .round_damage {
+            display: flex;
+          }
+          .weapon_utility,
+          .health_armor {
+            display: none;
+          }
+        }
+
+        .obs_slot {
+          display: none;
+        }
+        .hp_bar,
+        .hp_redbar {
+          transition: width 0s;
+        }
+        .avatar {
+          display: none;
+        }
+        .player-stats {
+          color: #b2b2b2;
+          svg {
+            fill: #b2b2b2;
+          }
+        }
+      }
+    }
+  }
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap");
+
+.players_alive {
+  position: fixed;
+  top: 160px !important;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  width: 180px;
+  background-color: var(--sub-panel-color);
+  opacity: 1;
+  overflow: hidden;
+  transition: width 0.5s;
+  font-family: "Unbounded", sans-serif;
+  z-index: 99;
+
+  // glow-эффект
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at 25% 50%,
+        var(--color-new-ct),
+        transparent
+      ),
+      radial-gradient(circle at 75% 50%, var(--color-new-t), transparent);
+    opacity: 0.12;
+    animation: pulse 1.5s infinite ease-in-out;
+    z-index: 0;
+  }
+
+  .counter_container {
+    display: flex;
+    height: 45px;
+    z-index: 1;
+
+    > div {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+    }
+
+    .CT {
+      color: white;
+      text-shadow: 0 0 8px var(--color-new-ct);
+    }
+
+    .T {
+      color: white;
+      text-shadow: 0 0 8px var(--color-new-t);
+    }
+  }
+
+  .title_container {
+    color: white;
+    text-transform: uppercase;
+    text-align: center;
+    height: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+  }
+
+  &.hide {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+
+.hp_row {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 35px;
+  z-index: 0; // важно, чтобы было под другими
+
+  .hp_back {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .hp_fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    transition: width 0.3s ease;
+    background: linear-gradient(to right, #7771f0, #554dff);
+  }
+}
+
+.teambox.T .hp_row .hp_fill {
+  background: linear-gradient(to right, #540c28, #ba1b58);
+}

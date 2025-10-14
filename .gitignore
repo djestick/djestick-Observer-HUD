@@ -1,0 +1,43 @@
+# Node / package managers
+node_modules/
+dist/
+build/
+dist-ssr/
+
+# Logs & reports
+logs/
+*.log
+yarn-debug.log*
+yarn-error.log*
+npm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.tmp
+*.temp
+
+# Builds & bundles
+*.zip
+*.tar
+*.tgz
+*.gz
+
+# Environment & runtime
+.env
+.env.*
+*.local
+coverage/
+.nyc_output/
+
+# IDE & tooling
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# HUD-specific generated assets
+src/HUD/Radar2/

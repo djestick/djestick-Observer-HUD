@@ -1,0 +1,174 @@
+.map_series_container {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  width: 347px;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.5s;
+  flex-direction: column;
+  font-size: 13px;
+  .veto_container {
+    display: flex;
+    background-color: hsla(0, 0%, 0%, 0.85);
+    color: white;
+    align-items: center;
+    height: 40px;
+    &.active {
+      .veto_winner {
+        display: none;
+      }
+      .veto_score {
+        display: none;
+      }
+    }
+    .veto_map_name {
+      width: 116px;
+      text-transform: uppercase;
+      height: 100%;
+      display: flex;
+      font-family: Montserrat;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+    }
+    div {
+      img {
+        max-height: 30px;
+        max-width: 30px;
+      }
+    }
+    .veto_picker {
+      width: 77px;
+      text-align: center;
+    }
+    .veto_winner {
+      width: 77px;
+      text-align: center;
+    }
+    .active_container {
+      width: 154px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      .active {
+        background: var(--border-color);
+        color: var(--primary-light);
+        width: 117px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 700;
+        font-family: Montserrat;
+        text-transform: uppercase;
+      }
+    }
+    &:not(.active) {
+      .active_container {
+        display: none;
+      }
+    }
+    .veto_score {
+      width: 77px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    &:last-child {
+      border-radius: 0px;
+    }
+  }
+  .title_bar {
+    display: flex;
+    background-color: hsla(0, 0%, 0%, 0.85);
+    height: 25px;
+    color: white;
+    border-radius: 0px;
+    font-family: Montserrat;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    div {
+      width: 77px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .picked {
+      margin-left: auto;
+    }
+  }
+  &.show {
+    opacity: 1;
+  }
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap");
+
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap");
+
+#timeout,
+#pause {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 150px;
+  width: 600px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Unbounded", sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: white;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+  border-radius: 0;
+  background-color: var(--sub-panel-color);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1.5s;
+  z-index: 9;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      270deg,
+      var(--color-new-ct),
+      var(--color-new-t),
+      var(--color-new-ct)
+    );
+    background-size: 800% 800%;
+    animation: dualGradientFlow 6s ease-in-out infinite;
+    opacity: 0.18;
+    z-index: -1;
+  }
+}
+
+#timeout.show,
+#pause.show {
+  opacity: 1;
+}
+
+// 🔁 Анимация фонового потока CT↔T
+@keyframes dualGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
