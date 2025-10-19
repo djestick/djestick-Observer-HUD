@@ -90,7 +90,7 @@ const Bomb = ({ bomb, mapConfig, reverseZoom }: { reverseZoom: string, bomb?: Bo
   if(!bomb) return null;
   if(bomb.state === "carried" || bomb.state === "planting") return null;
   if("config" in mapConfig){
-    const position = parsePosition(bomb.position, mapConfig.config);
+    const position = parsePosition(bomb.position, mapConfig.config, 30);
     if(!position) return null;
     
     return (
@@ -106,7 +106,7 @@ const Bomb = ({ bomb, mapConfig, reverseZoom }: { reverseZoom: string, bomb?: Bo
     )
   }
   return mapConfig.configs.map(config => {
-    const position = parsePosition(bomb.position, config.config);
+    const position = parsePosition(bomb.position, config.config, 30);
     if(!position) return null;
     return (
       <div key={`bomb_${config.id}`} className={`bomb ${bomb.state} ${config.isVisible(bomb.position[2]) ? 'visible':'hidden'}`}

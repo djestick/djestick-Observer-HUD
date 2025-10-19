@@ -3,22 +3,60 @@ import {
   Bomb,
   Grenade,
   FragOrFireBombOrFlashbandGrenade,
+  Side,
 } from "csgogsi-socket";
 import maps from './maps';
 import LexoRadar from './LexoRadar';
 import { RadarPlayerObject, RadarGrenadeObject } from './interface';
-import { EXPLODE_TIME_FRAG, explosionPlaces, extendGrenade, extendPlayer, grenadesStates, playersStates } from './utils';
+import { EXPLODE_TIME_FRAG, explosionPlaces, extendGrenade, extendPlayer, grenadesStates, normalizePosition, playersStates } from './utils';
 import { GSI } from '../../../API/HUD';
 
 const DESCALE_ON_ZOOM = true;
+type GrenadeWithId = Grenade & { id: string; side: Side | null };
+
+const ensureGrenadeId = (grenade: Grenade, fallback: string): GrenadeWithId => {
+  const candidate = (grenade as Grenade & { id?: string }).id;
+  if (candidate && candidate.length) {
+    const withId = grenade as GrenadeWithId;
+    return {
+      ...withId,
+      side: (withId.side ?? null) as Side | null,
+    };
+  }
+  return {
+    ...grenade,
+    id: fallback,
+    side: (grenade as { side?: Side | null }).side ?? null,
+  };
+};
+
 const toGrenadeArray = (
   value: Grenade[] | Record<string, Grenade> | undefined
-): Grenade[] => (Array.isArray(value) ? value : Object.values(value || {}));
+): GrenadeWithId[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((grenade, index) =>
+      ensureGrenadeId(
+        grenade,
+        `${grenade.owner || "unknown"}_${grenade.type}_${index}`
+      )
+    );
+  }
+  return Object.entries(value).map(([id, grenade]) =>
+    ensureGrenadeId(grenade, id)
+  );
+};
+
+const getSideOfGrenade = (grenade: Grenade, players: Player[]): Side | null => {
+  const owner = players.find(player => player.steamid === grenade.owner);
+  if (owner) return owner.team.side;
+  return (grenade as Partial<Grenade> & { side?: Side }).side ?? null;
+};
 interface IProps {
   players: Player[];
   bomb?: Bomb | null;
   player: Player | null;
-  grenades?: Grenade[];
+  grenades?: Grenade[] | Record<string, Grenade>;
   size?: number;
   mapName: string;
 }
@@ -54,7 +92,10 @@ GSI.prependListener("data", (data) => {
       grenade.lifetime >= EXPLODE_TIME_FRAG &&
       previous.lifetime < EXPLODE_TIME_FRAG
     ) {
-      explosionPlaces[grenade.id] = grenade.position;
+      const normalized = normalizePosition(grenade.position);
+      if (normalized) {
+        explosionPlaces[grenade.id] = normalized;
+      }
     }
   }
   for (const grenadeId of Object.keys(explosionPlaces)) {
@@ -73,9 +114,10 @@ const LexoRadarContainer = ({
   bomb,
   player,
   players,
-  grenades = [],
+  grenades,
 }: IProps) => {
     const offset = (size - (size * size / 1024)) / 2;
+    const grenadeEntries = toGrenadeArray(grenades);
 
     if (!(mapName in maps)) {
         return <div className="map-container" style={{ width: size, height: size, transform: `scale(${size / 1024})`, top: -offset, left: -offset }}>
@@ -83,7 +125,7 @@ const LexoRadarContainer = ({
         </div>;
     }
     const playersExtended: RadarPlayerObject[] = players.map(pl => extendPlayer({ player: pl, steamId: player?.steamid || null, mapName })).filter((player): player is RadarPlayerObject => player !== null).flat();
-    const grenadesExtended =  grenades.map(grenade => extendGrenade({ grenade, side: playersExtended.find(player => player.steamid === grenade.owner)?.side || 'CT', mapName })).filter(entry => entry !== null).flat() as RadarGrenadeObject[];
+    const grenadesExtended =  grenadeEntries.map(grenade => extendGrenade({ grenade, side: getSideOfGrenade(grenade, players), mapName })).filter(entry => entry !== null).flat() as RadarGrenadeObject[];
     const config = maps[mapName];
 
     const zooms = config && config.zooms || [];

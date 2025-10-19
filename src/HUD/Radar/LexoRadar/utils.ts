@@ -1,10 +1,15 @@
-import { Player, Side, Grenade, WeaponRaw } from "csgogsi-socket";
+import { Player, Side, WeaponRaw } from "csgogsi-socket";
 import maps, { ScaleConfig } from "./maps";
-import { ExtendedGrenade, RadarGrenadeObject, RadarPlayerObject } from "./interface";
+import {
+  ExtendedGrenade,
+  RadarGrenadeObject,
+  RadarPlayerObject,
+} from "./interface";
 import type { InfernoGrenade as CSGOInfernoGrenade } from "csgogsi";
+import config from "./config";
 
 export const playersStates: Player[][] = [];
-export const grenadesStates: Grenade[][] = [];
+export const grenadesStates: ExtendedGrenade[][] = [];
 const directions: { [key: string]: number } = {};
 
 export const explosionPlaces: Record<string, number[]> = {};
@@ -19,23 +24,48 @@ let shootingState: Record<string, ShootingState> = {};
 const toArray = <T>(value: T[] | Record<string, T> | undefined): T[] =>
   Array.isArray(value) ? value : Object.values(value || {});
 
-const toGrenadeArray = (
-  value: Grenade[] | Record<string, Grenade> | undefined
-): Grenade[] => (Array.isArray(value) ? value : Object.values(value || {}));
-
 type RadarWeapon = WeaponRaw & { id?: string };
 
 type BasicPosition = number[];
+type RawPosition = BasicPosition | string | { x: number; y: number; z?: number } | undefined | null;
 
-const hasCoordinates = (candidate: unknown): candidate is BasicPosition => {
-    if (!Array.isArray(candidate)) return false;
-    if (candidate.length < 2) return false;
-    const [x, y] = candidate;
-    return typeof x === "number" && !Number.isNaN(x) && typeof y === "number" && !Number.isNaN(y);
+const isValidNumber = (value: unknown): value is number =>
+  typeof value === "number" && !Number.isNaN(value);
+
+export const normalizePosition = (candidate: RawPosition): BasicPosition | null => {
+  if (candidate === undefined || candidate === null) return null;
+  if (Array.isArray(candidate)) {
+    const numbers = candidate.map(Number);
+    if (numbers.length < 2) return null;
+    if (!numbers.slice(0, 2).every(isValidNumber)) return null;
+    return numbers;
+  }
+  if (typeof candidate === "object") {
+    const { x, y, z } = candidate;
+    if (!isValidNumber(x) || !isValidNumber(y)) return null;
+    const result: BasicPosition = [x, y];
+    if (isValidNumber(z)) {
+      result.push(z);
+    }
+    return result;
+  }
+  if (typeof candidate === "string") {
+    const numbers = candidate
+      .split(",")
+      .map((part) => Number(part.trim()));
+    if (numbers.length < 2) return null;
+    if (!numbers.slice(0, 2).every(isValidNumber)) return null;
+    return numbers;
+  }
+  return null;
 };
 
-const safeHeight = (position: BasicPosition): number =>
-  typeof position[2] === "number" && !Number.isNaN(position[2]) ? position[2] : 0;
+const safeHeight = (position: RawPosition): number => {
+  const normalized = normalizePosition(position);
+  if (!normalized || normalized.length < 3) return 0;
+  const height = normalized[2];
+  return isValidNumber(height) ? height : 0;
+};
 
 const calculateDirection = (player: Player) => {
     if (directions[player.steamid] && !player.state.health) return directions[player.steamid];
@@ -80,21 +110,34 @@ export const round = (n: number) => {
     return Math.round(n / r) * r;
 }
 
-export const parsePosition = (position: number[], config: ScaleConfig) => {
-    const left = config.origin.x + (position[0] * config.pxPerUX);
-    const top = config.origin.y + (position[1] * config.pxPerUY);
+export const parsePosition = (position: RawPosition, config: ScaleConfig, size = 0) => {
+    const normalized = normalizePosition(position);
+    if (!normalized) return null;
+    const [x, y] = normalized;
+    const left = config.origin.x + (x * config.pxPerUX) - size / 2;
+    const top = config.origin.y + (y * config.pxPerUY) - size / 2;
 
     return [round(left), round(top)];
 }
 
-export const parsePlayerPosition = (player: Player, mapConfig: ScaleConfig) => {
+export const parsePlayerPosition = ({ player, mapConfig, scale }: { player: Player; mapConfig: ScaleConfig; scale: number; }) => {
     const playerData = playersStates.slice(0, 5).map(players => players.filter(pl => pl.steamid === player.steamid)[0]).filter(pl => !!pl);
-    if (playerData.length === 0) return [0, 0];
-    const positions = playerData.map(playerEntry => parsePosition(playerEntry.position, mapConfig));
-    const entryAmount = positions.length;
+    const size = config.playerSize * scale;
+    const positions = playerData.length === 0
+        ? []
+        : playerData
+            .map(playerEntry => parsePosition(playerEntry.position, mapConfig, size))
+            .filter((entry): entry is number[] => entry !== null);
+
     let x = 0;
     let y = 0;
-    for (const position of positions) {
+    const dataSource = positions.length > 0 ? positions : (() => {
+        const fallback = parsePosition(player.position, mapConfig, size);
+        return fallback ? [fallback] : [];
+    })();
+
+    const entryAmount = dataSource.length || 1;
+    for (const position of dataSource.length ? dataSource : [[0, 0]]) {
         x += position[0];
         y += position[1];
     }
@@ -105,10 +148,16 @@ export const parsePlayerPosition = (player: Player, mapConfig: ScaleConfig) => {
 
 
 const parseGrenadePosition = (grenade: ExtendedGrenade, config: ScaleConfig) => {
-    if(grenade.id in explosionPlaces) return parsePosition(explosionPlaces[grenade.id], config);
+    const size = grenade.type === "smoke" ? 60 : 30;
+    if(grenade.id in explosionPlaces) return parsePosition(explosionPlaces[grenade.id], config, size);
     const grenadeData = grenadesStates.slice(0, 5).map(grenades => grenades.filter(gr => gr.id === grenade.id)[0]).filter(pl => !!pl);
-    if (grenadeData.length === 0) return "position" in grenade ? parsePosition(grenade.position, config) : null;
-    const positions = grenadeData.map(grenadeEntry => ("position" in grenadeEntry ? parsePosition(grenadeEntry.position, config) : null)).filter(posData => posData !== null) as number[][];
+    if (grenadeData.length === 0) {
+        if (!("position" in grenade)) return null;
+        return parsePosition(grenade.position, config, size);
+    }
+    const positions = grenadeData
+        .map(grenadeEntry => ("position" in grenadeEntry ? parsePosition(grenadeEntry.position, config, size) : null))
+        .filter((posData): posData is number[] => posData !== null);
     if (positions.length === 0) return null;
     const entryAmount = positions.length;
     let x = 0;
@@ -124,7 +173,7 @@ const parseGrenadePosition = (grenade: ExtendedGrenade, config: ScaleConfig) => 
 export const EXPLODE_TIME_FRAG = 1.6;
 export const EXPLODE_TIME_FLASH = 1.45;
 
-export const extendGrenade = ({grenade, mapName, side }: { side: Side, grenade: Grenade, mapName: string}) => {
+export const extendGrenade = ({grenade, mapName, side }: { side: Side | null, grenade: ExtendedGrenade, mapName: string}) => {
    // const owner = this.props.players.find(player => player.steamid === grenade.owner);
     const extGrenade: ExtendedGrenade = {
         ...grenade,
@@ -132,17 +181,24 @@ export const extendGrenade = ({grenade, mapName, side }: { side: Side, grenade: 
     }
     const map = maps[mapName];
     if (extGrenade.type === "inferno") {
-        const mapFlame = (flame: CSGOInfernoGrenade["flames"][number] | undefined, index: number) => {
-            if (!flame || !hasCoordinates(flame.position)) {
+        const mapFlame = (key: string, flame: CSGOInfernoGrenade["flames"][number] | string | { position?: RawPosition; id?: string } | undefined, index: number) => {
+            if (!flame) return null;
+            const rawPosition =
+                typeof flame === "string"
+                    ? flame
+                    : "position" in flame
+                    ? flame.position
+                    : flame;
+            const flamePosition = normalizePosition(rawPosition as RawPosition);
+            if (!flamePosition) {
                 return null;
             }
-            const normalizedPosition = flame.position;
-            const height = safeHeight(normalizedPosition);
-            const baseId = flame.id
+            const height = safeHeight(rawPosition as RawPosition);
+            const baseId = typeof flame === "object" && flame && "id" in flame && flame.id
                 ? `${flame.id}_${extGrenade.id}`
-                : `${extGrenade.id}_flame_${index}`;
+                : `${extGrenade.id}_flame_${key || index}`;
             if ("config" in map) {
-                const position = parsePosition(normalizedPosition, map.config);
+                const position = parsePosition(flamePosition, map.config, 12);
                 if (!position) return null;
                 return ({
                     position,
@@ -151,7 +207,7 @@ export const extendGrenade = ({grenade, mapName, side }: { side: Side, grenade: 
                 });
             }
             return map.configs.map(config => {
-                const position = parsePosition(normalizedPosition, config.config);
+                const position = parsePosition(flamePosition, config.config, 12);
                 if (!position) return null;
                 return ({
                     id: `${baseId}_${config.id}`,
@@ -160,9 +216,11 @@ export const extendGrenade = ({grenade, mapName, side }: { side: Side, grenade: 
                 });
             }).filter((entry): entry is { id: string; visible: boolean; position: number[] } => entry !== null);
         }
-        const flameEntries = toArray<CSGOInfernoGrenade["flames"][number]>(extGrenade.flames as any);
-        const flames = flameEntries.flatMap((flame, index) => {
-            const mapped = mapFlame(flame, index);
+        const entries = extGrenade.flames
+            ? Object.entries(extGrenade.flames as Record<string, unknown>)
+            : [];
+        const flames = entries.flatMap(([key, value], index) => {
+            const mapped = mapFlame(key, value as any, index);
             if (!mapped) return [];
             return Array.isArray(mapped) ? mapped : [mapped];
         });
@@ -208,7 +266,7 @@ export const extendGrenade = ({grenade, mapName, side }: { side: Side, grenade: 
             side: extGrenade.side,
             position,
             id: `${extGrenade.id}_${config.id}`,
-            visible: config.isVisible(extGrenade.position[2])
+            visible: config.isVisible(safeHeight(extGrenade.position))
         }
         if (extGrenade.type === "smoke") {
             if (extGrenade.effecttime !== 0) {
@@ -264,7 +322,7 @@ export const extendPlayer = ({ player, steamId, mapName }: { mapName: string, pl
 
         playerObject.scale = scale;
 
-        const position = parsePlayerPosition(player, map.config);
+        const position = parsePlayerPosition({ player, mapConfig: map.config, scale });
         playerObject.position = position;
 
         return playerObject;
@@ -276,7 +334,7 @@ export const extendPlayer = ({ player, steamId, mapName }: { mapName: string, pl
 
         return ({
             ...playerObject,
-            position: parsePlayerPosition(player, config.config),
+            position: parsePlayerPosition({ player, mapConfig: config.config, scale }),
             id: `${player.steamid}_${config.id}`,
             visible: config.isVisible(player.position[2])
         })
